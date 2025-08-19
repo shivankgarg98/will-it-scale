@@ -3,13 +3,14 @@
 import sys
 import os
 import csv
+import json
 import string
 
 template = '''
 <html>
 <head>
   <title>Will it scale?</title>
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-3.1.0.min.js" charset="utf-8"></script>
   <script src="plot.js"></script>
 </head>
 
@@ -38,21 +39,26 @@ def process(base):
     titlefile = base + '.title'
     htmlfile = base + '.html'
 
-    data = parse_data(csvfile)
-    title = open(titlefile).readline().strip()
+    try:
+        data = parse_data(csvfile)
+        try:
+            with open(titlefile, 'r') as f:
+                title = f.readline().strip()
+        except FileNotFoundError:
+            title = f"Chart for {base}"
+            print(f"Warning: {titlefile} not found, using default title")
 
-    t = string.Template(template)
-    html = t.substitute(data=data, title=title)
+        json_data = json.dumps(data)
+        t = string.Template(template)
+        html = t.substitute(data=json_data, title=title)
 
-    open(htmlfile, 'w').write(html)
-    print('Created %s' % (htmlfile))
+        with open(htmlfile, 'w') as f:
+            f.write(html)
+        print(f'Created {htmlfile}')
 
-
-def for_each_file(dirname, subdirs, filenames):
-    for f in filenames:
-        if f.endswith('.csv'):
-            process(f)
-
+    except Exception as e:
+        print(f"Error processing {base}: {e}")
+        return False
 
 if __name__ == '__main__':
 
